@@ -130,10 +130,10 @@ async function handleEvent(event) {
 
     // その他のメッセージの場合
     console.log(`ユーザー ${userId} から未知のメッセージを受信`);
-    return await client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: '「元の体重：」「目標体重：」「今日の体重：」の形式でメッセージを送ってね！'
-    });
+    // return await client.replyMessage(event.replyToken, {
+    //   type: 'text',
+    //   text: '「元の体重：」「目標体重：」「今日の体重：」の形式でメッセージを送ってね！'
+    // });
 
   } catch (error) {
     console.error('メッセージ処理中にエラー:', error);
