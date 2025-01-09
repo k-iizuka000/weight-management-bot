@@ -7,60 +7,50 @@ const config = {
   channelSecret: process.env.CHANNEL_SECRET
 };
 
-// 設定値の存在チェック
-if (!config.channelAccessToken || !config.channelSecret) {
-  console.error('環境変数 CHANNEL_ACCESS_TOKEN と CHANNEL_SECRET を設定してください。');
-  process.exit(1);
-}
-
 // メモリ内でユーザーデータを保持するオブジェクト
 const userWeightData = {};
 
 // Express アプリケーションの作成
 const app = express();
 
-// エラーハンドリングミドルウェア
-app.use((err, req, res, next) => {
-  console.error('エラーが発生しました:', err);
-  res.status(500).json({
-    status: 'error',
-    message: 'Internal Server Error'
-  });
-});
-
 // LINE クライアントの作成
 const client = new line.Client(config);
 
-// ボディパーサーの設定
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Webhookハンドラー
+const webhookHandler = async (req, res) => {
+  if (!config.channelAccessToken || !config.channelSecret) {
+    console.error('環境変数が設定されていません');
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal Server Error'
+    });
+    return;
+  }
 
-// Webhookのエンドポイント
-app.post('/webhook', line.middleware(config), async (req, res) => {
-  console.log('Webhookリクエストを受信:', req.body);
-  
   try {
+    const events = req.body.events;
+    console.log('受信したイベント:', events);
+
     const results = await Promise.all(
-      req.body.events.map(async (event) => {
+      events.map(async (event) => {
         try {
           return await handleEvent(event);
         } catch (err) {
-          console.error('イベント処理中にエラーが発生:', err, event);
+          console.error('イベント処理中にエラー:', err);
           return null;
         }
       })
     );
-    
-    console.log('処理結果:', results);
-    res.json(results);
+
+    res.status(200).json(results);
   } catch (err) {
-    console.error('Webhookエンドポイントでエラーが発生:', err);
+    console.error('Webhookハンドラーでエラー:', err);
     res.status(500).json({
       status: 'error',
       message: 'Internal Server Error'
     });
   }
-});
+};
 
 // イベントハンドラー
 async function handleEvent(event) {
@@ -146,8 +136,7 @@ async function handleEvent(event) {
     });
 
   } catch (error) {
-    console.error('メッセージ処理中にエラーが発生:', error);
-    // エラーが発生しても、LINEユーザーには一般的なエラーメッセージを返す
+    console.error('メッセージ処理中にエラー:', error);
     return await client.replyMessage(event.replyToken, {
       type: 'text',
       text: 'すみません、エラーが発生しました。もう一度試してください。'
@@ -155,18 +144,19 @@ async function handleEvent(event) {
   }
 }
 
-// 基本的なヘルスチェックエンドポイント
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-// サーバーの起動
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`サーバーがポート ${port} で起動しました`);
-  console.log('環境変数:', {
-    CHANNEL_ACCESS_TOKEN: config.channelAccessToken ? '設定済み' : '未設定',
-    CHANNEL_SECRET: config.channelSecret ? '設定済み' : '未設定',
-    PORT: port
-  });
-});
+// Vercelのサーバーレス関数用のエクスポート
+module.exports = (req, res) => {
+  // POSTリクエストの場合はWebhookハンドラーを実行
+  if (req.method === 'POST') {
+    return webhookHandler(req, res);
+  }
+  
+  // GETリクエストの場合は簡単な応答を返す
+  if (req.method === 'GET') {
+    return res.status(200).send('Line Bot is running!');
+  }
+  
+  // その他のメソッドは405を返す
+  res.setHeader('Allow', ['GET', 'POST']);
+  return res.status(405).end(`Method ${req.method} Not Allowed`);
+};
