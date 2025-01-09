@@ -11,6 +11,8 @@ const config = {
 const client = new Client(config);
 
 module.exports = async (req, res) => {
+  console.log('Access Token:', process.env.CHANNEL_ACCESS_TOKEN);
+  console.log('Secret:', process.env.CHANNEL_SECRET);
   // HTTPメソッドのチェック（LINEのWebhookはPOST）
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
