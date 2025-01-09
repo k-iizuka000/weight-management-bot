@@ -59,11 +59,11 @@ async function handleEvent(event) {
     });
 
   } catch (error) {
-    console.error('エラーが発生しました:', error);
-    return await client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: 'すみません、エラーが発生しました。もう一度試してください。'
-    });
+    // console.error('エラーが発生しました:', error);
+    // return await client.replyMessage(event.replyToken, {
+    //   type: 'text',
+    //   text: 'すみません、エラーが発生しました。もう一度試してください。'
+    // });
   }
 }
 
