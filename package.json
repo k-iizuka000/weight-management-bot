@@ -1,12 +1,13 @@
 {
   "name": "my-line-bot",
   "version": "1.0.0",
-  "description": "A simple LINE bot that replies 'こんにちは'",
+  "description": "Weight tracking LINE bot",
   "main": "api/webhook.js",
   "scripts": {
     "start": "node api/webhook.js"
   },
   "dependencies": {
-    "@line/bot-sdk": "^7.5.2"
+    "@line/bot-sdk": "^7.5.2",
+    "express": "^4.18.2"
   }
 }
