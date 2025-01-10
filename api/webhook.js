@@ -9,13 +9,44 @@ const config = {
 // LINE クライアントの作成
 const client = new line.Client(config);
 
+// ユーザー名を取得する関数
+async function getDisplayName(event) {
+  try {
+    // グループの場合
+    if (event.source.type === 'group') {
+      const profile = await client.getGroupMemberProfile(
+        event.source.groupId,
+        event.source.userId
+      );
+      return profile.displayName;
+    }
+    // 個人チャットの場合
+    else if (event.source.type === 'user') {
+      const profile = await client.getProfile(event.source.userId);
+      return profile.displayName;
+    }
+    // その他の場合（ルームなど）
+    else if (event.source.type === 'room') {
+      const profile = await client.getRoomMemberProfile(
+        event.source.roomId,
+        event.source.userId
+      );
+      return profile.displayName;
+    }
+    
+    return 'ユーザー'; // プロフィール取得に失敗した場合のデフォルト値
+  } catch (error) {
+    console.error('プロフィール取得エラー:', error);
+    return 'ユーザー';
+  }
+}
+
 // イベントハンドラー
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return null;
   }
 
-  const userId = event.source.userId;
   const text = event.message.text;
   console.log(`受信メッセージ: ${text}`);
 
@@ -48,9 +79,8 @@ async function handleEvent(event) {
     // 進捗率を小数点第1位で四捨五入
     const roundedProgress = Math.round(progress * 10) / 10;
 
-    // ユーザー情報を取得
-    const profile = await client.getProfile(userId);
-    const displayName = profile.displayName;
+    // ユーザー名を取得
+    const displayName = await getDisplayName(event);
 
     // 結果を返信
     return await client.replyMessage(event.replyToken, {
@@ -116,4 +146,3 @@ module.exports = (req, res) => {
   res.setHeader('Allow', ['GET', 'POST']);
   return res.status(405).end(`Method ${req.method} Not Allowed`);
 };
-
